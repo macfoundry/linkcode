@@ -17,6 +17,7 @@ runs:
         # sync with CROSS_BUILDS in apps/desktop/scripts/stage-sidecar.mts.
         target: ${{ runner.os == 'macOS' && 'x86_64-apple-darwin' || runner.os == 'Windows' && 'aarch64-pc-windows-msvc' || 'aarch64-unknown-linux-gnu' }}
         rustflags: ''
+        cache: false
 
     - name: Install aarch64 cross toolchain
       if: runner.os == 'Linux'
