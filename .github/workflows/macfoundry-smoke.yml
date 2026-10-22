@@ -12,9 +12,7 @@ concurrency:
 
 jobs:
   smoke:
-    runs-on:
-      group: MacFoundry CI
-      labels: [self-hosted, macOS, ARM64, macfoundry-ci]
+    runs-on: [self-hosted, macOS, ARM64, macfoundry-ci]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
