@@ -201,22 +201,12 @@ jobs:
     # Signing is gated by the `release` environment (secrets + tag policy); '' = no environment.
     environment: ${{ inputs.sign && (inputs.release_environment || 'release') || '' }}
     env:
-      # These overrides affect job steps, not the Runner's control connection or action download.
-      HTTP_PROXY: ""
-      HTTPS_PROXY: ""
-      ALL_PROXY: ""
-      http_proxy: ""
-      https_proxy: ""
-      all_proxy: ""
-      NO_PROXY: "*"
-      no_proxy: "*"
       npm_config_registry: https://registry.npmmirror.com
       ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
       ELECTRON_CUSTOM_DIR: "{{ version }}"
       ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
       RUSTUP_DIST_SERVER: https://rsproxy.cn
       RUSTUP_UPDATE_ROOT: https://rsproxy.cn/rustup
-      CARGO_HOME: ${{ runner.temp }}/macfoundry-cargo
       HOMEBREW_API_DOMAIN: https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api
       HOMEBREW_BOTTLE_DOMAIN: https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles
     strategy:
@@ -228,9 +218,14 @@ jobs:
             runner: macfoundry
 
     steps:
-      - name: Record benchmark environment
+      - name: Configure direct downloads and record benchmark environment
         shell: bash
         run: |
+          # YAML env keys are case-insensitive; macOS subprocess environment keys are not.
+          # This affects subsequent job steps, not Runner control or Actions initialization.
+          printf '%s\n' 'HTTP_PROXY=' 'HTTPS_PROXY=' 'ALL_PROXY=' \
+            'http_proxy=' 'https_proxy=' 'all_proxy=' 'NO_PROXY=*' 'no_proxy=*' \
+            "CARGO_HOME=$RUNNER_TEMP/macfoundry-cargo" >> "$GITHUB_ENV"
           uname -m
           sw_vers
           xcodebuild -version
