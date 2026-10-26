@@ -112,6 +112,26 @@ client configuration or new build.
 | `POSTHOG_HOST` | desktop/mobile build workflows | Organization Actions variable mapped to the platform-specific PostHog host for production bundles. |
 | `CONFIG_PUBLISHER_REPO`, `CONFIG_SOURCE_REPO` | release workflows | Protected `release` Environment vars. They are different canonical `arcboxlabs/repository` identities for publisher code and structural source data; trusted steps validate them before minting separate repository-scoped read tokens. Current values are `arcboxlabs/linkcodehq` and `arcboxlabs/linkcode-config`. Official releases download digest-bound revision/keyring/manifest bytes from `config.linkcode.ai` instead of Actions variables. The nonproduction brand-matrix fixture retains compatibility inputs documented in [`RELEASE.md`](RELEASE.md). |
 
+## MacFoundry benchmark downloads
+
+On `codex/desktop-runner-benchmark`, `build-desktop.yml` runs only the MacFoundry macOS job.
+Its job-scoped proxy variables are empty and `NO_PROXY`/`no_proxy` are `*`; this does not change
+the Runner control connection or Actions initialization downloads. No host-wide settings change.
+
+- Node 26.12.1 is downloaded from npmmirror and checked against the pinned official SHA-256
+  before populating the Actions tool cache. `setup-node` then uses that verified copy instead of
+  downloading the `actions/node-versions` GitHub Release. Download bytes, time and speed are logged.
+- `npm_config_registry` selects `registry.npmmirror.com`; the frozen pnpm lockfile still applies.
+- `ELECTRON_MIRROR` and `ELECTRON_CUSTOM_DIR` select npmmirror's Electron binaries;
+  `ELECTRON_BUILDER_BINARIES_MIRROR` selects its builder tools, including dmgbuild.
+- `RUSTUP_DIST_SERVER` and `RUSTUP_UPDATE_ROOT` select RsProxy. The job uses an isolated
+  `CARGO_HOME` under `runner.temp`, with crates.io replaced by `sparse+https://rsproxy.cn/index/`.
+- `HOMEBREW_API_DOMAIN` and `HOMEBREW_BOTTLE_DOMAIN` select TUNA's API and bottles mirrors.
+
+TLS and package checksum verification remain enabled. Other GitHub Release assets are not
+automatically rewritten. Run with `sign=false`; compare results with the earlier GitHub run as
+different download configurations, not as an isolated CPU benchmark.
+
 ## Release-only secrets
 
 Set as GitHub repository/environment secrets, never locally. Signing and notarization secrets live in the protected `release` environment; unsigned PR builds get empty values and skip signing. The release automation GitHub App credentials are repository/org secrets because release-please must maintain PRs before entering that environment. Full context in [`RELEASE.md`](./RELEASE.md).
