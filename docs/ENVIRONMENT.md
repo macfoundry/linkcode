@@ -121,7 +121,9 @@ the Runner control connection or Actions initialization downloads. No host-wide 
 - Node 26.12.1 is downloaded from npmmirror and checked against the pinned official SHA-256
   before populating the Actions tool cache. `setup-node` then uses that verified copy instead of
   downloading the `actions/node-versions` GitHub Release. Download bytes, time and speed are logged.
-- `npm_config_registry` selects `registry.npmmirror.com`; the frozen pnpm lockfile still applies.
+- `pnpm_config_registry` selects `registry.npmmirror.com` for pnpm 11; `npm_config_registry`
+  covers the Action's npm bootstrap. The install step verifies pnpm's effective registry and
+  retains the frozen lockfile.
 - `ELECTRON_MIRROR` and `ELECTRON_CUSTOM_DIR` select npmmirror's Electron binaries;
   `ELECTRON_BUILDER_BINARIES_MIRROR` selects its builder tools, including dmgbuild.
 - `RUSTUP_DIST_SERVER` and `RUSTUP_UPDATE_ROOT` select RsProxy. The job uses an isolated

@@ -202,6 +202,7 @@ jobs:
     environment: ${{ inputs.sign && (inputs.release_environment || 'release') || '' }}
     env:
       npm_config_registry: https://registry.npmmirror.com
+      pnpm_config_registry: https://registry.npmmirror.com
       ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
       ELECTRON_CUSTOM_DIR: "{{ version }}"
       ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
@@ -286,7 +287,12 @@ jobs:
               package-manager-cache: false
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        shell: bash
+        run: |
+          registry="$(pnpm config get registry)"
+          test "${registry%/}" = https://registry.npmmirror.com
+          printf 'pnpm registry: %s\n' "$registry"
+          pnpm install --frozen-lockfile
 
       # The exact bytes rendered by render-config: Vite validates them, derives the inlined
       # bootstrap, and stages them into the asar; verify-artifacts byte-compares the staged copy.
