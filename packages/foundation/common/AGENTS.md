@@ -14,3 +14,6 @@ client data layer, UI, or host runtime.
   `ui`, `coss-ui`, an app, or `workbench`.
 - Keep exports explicit and scoped by concern (for example `@linkcode/common/zustand`),
   rather than growing a broad catch-all barrel.
+
+Release artifact paths resolve against the canonical root so directory aliases such as macOS
+`/tmp` work. Nested links must still stay inside that root; artifact files cannot be symlinks.

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -55,6 +55,51 @@ const expectedDeliveryDescriptorSha256 = createHash('sha256')
   .digest('hex');
 
 describe('release artifact provenance', () => {
+  it('accepts an aliased root without allowing traversal through a nested directory link', async () => {
+    const fixture = await realpath(await mkdtemp(join(tmpdir(), 'release-root-alias-')));
+    const root = join(fixture, 'artifacts');
+    const alias = join(fixture, 'alias');
+    const outside = join(fixture, 'outside');
+    await mkdir(root);
+    await mkdir(outside);
+    await symlink(root, alias, 'junction');
+    await symlink(outside, join(root, 'escape'), 'junction');
+    await writeFile(join(root, 'installer.zip'), 'artifact');
+    await writeFile(join(outside, 'installer.zip'), 'outside');
+    const input = {
+      artifactPaths: ['installer.zip'],
+      artifactRoot: alias,
+      brandIdentity: identity,
+      brandManifestBytes: new TextEncoder().encode('brands: [acme]'),
+      bundle,
+      clientGitSha,
+      compliance,
+      deliveryDescriptorBytes,
+      expectedDeliveryDescriptorSha256,
+      releaseManifest,
+      releaseManifestBytes: new TextEncoder().encode('{}'),
+      signed: false,
+    };
+    const provenance = await createReleaseArtifactProvenance(input);
+    expect(provenance.artifacts[0]).toMatchObject({ path: 'installer.zip', sizeBytes: 8 });
+    await writeReleaseArtifactProvenance('provenance.json', provenance, alias);
+    expect(JSON.parse(await readFile(join(root, 'provenance.json'), 'utf8'))).toStrictEqual(
+      provenance,
+    );
+    await expect(
+      createReleaseArtifactProvenance({ ...input, artifactPaths: ['../outside/installer.zip'] }),
+    ).rejects.toThrow('escapes its isolated root');
+    await expect(
+      createReleaseArtifactProvenance({ ...input, artifactPaths: ['escape/installer.zip'] }),
+    ).rejects.toThrow('resolves outside its isolated root');
+    await expect(
+      writeReleaseArtifactProvenance('escape/provenance.json', provenance, alias),
+    ).rejects.toThrow('resolves outside its isolated root');
+    await expect(readFile(join(outside, 'provenance.json'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
   it('binds each isolated artifact to the manifest, revision, and defaults digests', async () => {
     const root = await mkdtemp(join(tmpdir(), 'release-artifact-'));
     await writeFile(join(root, 'installer.zip'), 'artifact');
